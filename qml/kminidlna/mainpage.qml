@@ -5,10 +5,6 @@ import com.nokia.android 1.1
 Page {
     id: mainPage
     anchors.fill: parent
-//    Flickable {
-//        id: flick
-//         anchors.fill: parent
-//         contentWidth: column1.width; contentHeight: column1.height;
         Column {
             id: column1
             anchors{
@@ -164,7 +160,6 @@ Page {
                     client.start()
                 }
             }
-//        }
     }
 
     QueryDialog{
@@ -236,8 +231,8 @@ Page {
     }
 
     function getTextError(err){
-        if(err == -1){
-            return "Network is not accessible";
+        if(err == 99){
+            return "Network unreachable";
         }else if(err == 1){
             return "Connection refused.";
         }else if(err == 201){

@@ -15,16 +15,17 @@
 
 
 const QString NetworkClient::GET_STATE ="/minidlna-state.xml";
-const QString NetworkClient::PUT_STATE ="/minidlna-state.xml";
+const QString NetworkClient::PUT_STATE ="/minidlna-set-state.xml";
 const QString NetworkClient::VERSION ="/version.xml";
 const QString NetworkClient::MEDIA_FOLDERS ="/mediafolders.xml";
-const QByteArray NetworkClient::DEFAULT_HOST = "https://192.168.1.219:8081";
+const QByteArray NetworkClient::DEFAULT_HOST = "https://192.168.43.205:8081";
 
 NetworkClient::NetworkClient(QObject *parent) :
     QObject(parent), m_host(DEFAULT_HOST)
 {
     run = false;
     m_mng = new QNetworkAccessManager(this);
+
     connect(m_mng, SIGNAL(finished(QNetworkReply*)), this, SLOT(finished(QNetworkReply*)));
     connect(m_mng, SIGNAL(networkAccessibleChanged(QNetworkAccessManager::NetworkAccessibility)), SLOT(onNetworkAccessibleChanged(QNetworkAccessManager::NetworkAccessibility)));
     m_sslConf.setPeerVerifyMode(QSslSocket::VerifyNone);
@@ -46,28 +47,22 @@ bool NetworkClient::isNetwork(){
 }
 
 void NetworkClient::start(){
-    if(isNetwork() < 1){
-        emit noConnection(-1);
-        return;
-    }
     QByteArray str;
     if(run){
-        str = "notrunning";
+        str = "stop";
     }else{
-        str = "running";
+        str = "start";
     }
     QNetworkRequest* req = createNetworkRequest(QUrl(m_host+PUT_STATE));
     req->setHeader(QNetworkRequest::ContentTypeHeader, "text/xml");
     QNetworkReply *reply = 0;
-    reply = m_mng->put(*req, QByteArray("<?xml version=\"1.0\" encoding=\"UTF-8\" ?><minidlna><state>"+str+"</state></minidlna>"));
+//    QNetworkRequest copiedreq = *req;
+
+    reply = m_mng->put(*req, QByteArray("<?xml version=\"1.0\" encoding=\"UTF-8\" ?><minidlna><run>"+str+"</run></minidlna>"));
     delete req;
 }
 
 void NetworkClient::loadState(){
-    if(isNetwork() < 1){
-        emit noConnection(-1);
-        return;
-    }
     QNetworkRequest* req = createNetworkRequest(QUrl(m_host+GET_STATE));
     QNetworkReply *reply = 0;
     reply = m_mng->get(*req);
@@ -75,19 +70,11 @@ void NetworkClient::loadState(){
 }
 
 void NetworkClient::reloadAll(){
-    if(isNetwork() < 1){
-        emit noConnection(-1);
-        return;
-    }
     loadState();
     loadVersion();
 }
 
 void NetworkClient::loadVersion(){
-    if(isNetwork() < 1){
-        emit noConnection(-1);
-        return;
-    }
     QNetworkRequest* req = createNetworkRequest(QUrl(m_host+VERSION));
     QNetworkReply *reply = 0;
     reply = m_mng->get(*req);
@@ -95,10 +82,6 @@ void NetworkClient::loadVersion(){
 }
 
 void NetworkClient::realoadMediaFolders(){
-    if(isNetwork() < 1){
-        emit noConnection(-1);
-        return;
-    }
     QNetworkRequest* req = createNetworkRequest(QUrl(m_host+MEDIA_FOLDERS));
     QNetworkReply *reply = 0;
     reply = m_mng->get(*req);
@@ -133,6 +116,7 @@ QNetworkRequest* NetworkClient::createNetworkRequest(const QUrl& url){
 
 void NetworkClient::finished(QNetworkReply* reply){
     QString str = reply->url().path();
+    qDebug() << "ERROR: " << reply->error() << reply->errorString();
     switch(reply->error()){
     case QNetworkReply::HostNotFoundError:
     case QNetworkReply::ConnectionRefusedError:
@@ -141,6 +125,10 @@ void NetworkClient::finished(QNetworkReply* reply){
     case QNetworkReply::ContentAccessDenied:
     case QNetworkReply::AuthenticationRequiredError:
         emit noConnection(QNetworkReply::ContentAccessDenied);
+        break;
+    case QNetworkReply::UnknownNetworkError:
+         emit noConnection(QNetworkReply::UnknownNetworkError);
+         break;
     case QNetworkReply::NoError:
         if(str == VERSION){
             QString v = parseVersion(reply->readAll());
@@ -166,7 +154,7 @@ void NetworkClient::finished(QNetworkReply* reply){
         }
         break;
     default:
-        qDebug() << "Other reply: " << reply->errorString();
+        qDebug() << "Other reply: " << reply->errorString() << reply->error();
     }
     reply->deleteLater();
 }
