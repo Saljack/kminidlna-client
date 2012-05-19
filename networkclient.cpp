@@ -18,7 +18,7 @@ const QString NetworkClient::GET_STATE ="/minidlna-state.xml";
 const QString NetworkClient::PUT_STATE ="/minidlna-set-state.xml";
 const QString NetworkClient::VERSION ="/version.xml";
 const QString NetworkClient::MEDIA_FOLDERS ="/mediafolders.xml";
-const QByteArray NetworkClient::DEFAULT_HOST = "https://192.168.43.205:8081";
+const QByteArray NetworkClient::DEFAULT_HOST = "https://192.168.1.1:8080";
 
 NetworkClient::NetworkClient(QObject *parent) :
     QObject(parent), m_host(DEFAULT_HOST)
@@ -162,8 +162,8 @@ void NetworkClient::finished(QNetworkReply* reply){
 void NetworkClient::loadSettings(){
     QSettings settings("Saljack", "KMiniDLNA");
     m_host = settings.value("host", DEFAULT_HOST).toByteArray();
-    m_login = settings.value("login", "saljack").toString();
-    m_password = settings.value("password", QByteArray("superman").toBase64()).toByteArray();
+    m_login = settings.value("login", "username").toString();
+    m_password = settings.value("password", QByteArray("password").toBase64()).toByteArray();
     m_rememberPassword = settings.value("rememberPassword", false).toBool();
     emit settingsLoaded();
 }
